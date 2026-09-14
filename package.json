@@ -1,6 +1,6 @@
 {
   "name": "@powerduck/openapi-request",
-  "version": "0.2.5",
+  "version": "0.2.7",
   "description": "OpenAPI 3.2 collection debugger with HTTP, SSE and WebSocket support, plus response write-back",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -70,6 +70,15 @@
     "api-debugger"
   ],
   "license": "MIT",
+  "author": "POWERDUCK LIMITED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/powerducklab/openapi-request.git"
+  },
+  "bugs": {
+    "url": "https://github.com/powerducklab/openapi-request/issues"
+  },
+  "homepage": "https://www.powerduck.com/",
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",
     "@grpc/proto-loader": "^0.8.1",
