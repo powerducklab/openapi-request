@@ -1,0 +1,93 @@
+{
+  "name": "@powerduck/openapi-request",
+  "version": "0.2.5",
+  "description": "OpenAPI 3.2 collection debugger with HTTP, SSE and WebSocket support, plus response write-back",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./http": {
+      "types": "./dist/protocols/http/index.d.ts",
+      "import": "./dist/protocols/http/index.js",
+      "require": "./dist/protocols/http/index.cjs"
+    },
+    "./ws": {
+      "types": "./dist/protocols/ws/index.d.ts",
+      "import": "./dist/protocols/ws/index.js",
+      "require": "./dist/protocols/ws/index.cjs"
+    },
+    "./grpc": {
+      "types": "./dist/protocols/grpc/index.d.ts",
+      "import": "./dist/protocols/grpc/index.js",
+      "require": "./dist/protocols/grpc/index.cjs"
+    },
+    "./mcp": {
+      "types": "./dist/protocols/mcp/index.d.ts",
+      "import": "./dist/protocols/mcp/index.js",
+      "require": "./dist/protocols/mcp/index.cjs"
+    },
+    "./graphql": {
+      "types": "./dist/protocols/graphql/index.d.ts",
+      "import": "./dist/protocols/graphql/index.js",
+      "require": "./dist/protocols/graphql/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .ts",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
+  },
+  "keywords": [
+    "openapi",
+    "openapi-3.2",
+    "postman",
+    "postman-runtime",
+    "sse",
+    "websocket",
+    "api-debugger"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.4",
+    "@grpc/proto-loader": "^0.8.1",
+    "@grpc/reflection": "^1.0.4",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "graphql": "^16.14.2",
+    "postman-collection": "^5.3.1",
+    "postman-runtime": "^7.56.1",
+    "ws": "^8.21.3",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/postman-collection": "^3.5.11",
+    "@types/ws": "^8.5.13",
+    "terser": "^5.51.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package demo.common;
+
+message Meta {
+  string trace_id = 1;
+  int64 timestamp_ms = 2;
+}
+
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  INFO = 1;
+  WARN = 2;
+  ERROR = 3;
+}

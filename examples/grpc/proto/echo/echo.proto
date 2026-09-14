@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package demo.echo;
+
+import "../common/types.proto";
+
+service Echo {
+  // unary
+  rpc Say(SayRequest) returns (SayReply);
+  // server streaming
+  rpc Countdown(CountdownRequest) returns (stream Tick);
+  // client streaming
+  rpc Sum(stream Number) returns (SumReply);
+  // bidi streaming
+  rpc Chat(stream ChatMessage) returns (stream ChatMessage);
+  // unary that always fails, for status-code checks
+  rpc Boom(SayRequest) returns (SayReply);
+}
+
+message SayRequest {
+  string text = 1;
+  demo.common.Meta meta = 2;
+
+  // Structural choice: exactly one branch may be set.
+  oneof flavor {
+    string plain = 3;
+    Decorated decorated = 4;
+  }
+
+  // Explicit presence: unset and "" are distinguishable.
+  optional string nickname = 5;
+
+  repeated string tags = 6;
+  map<string, string> labels = 7;
+  demo.common.Severity severity = 8;
+}
+
+message Decorated {
+  string prefix = 1;
+  string suffix = 2;
+}
+
+message SayReply {
+  string text = 1;
+  demo.common.Meta meta = 2;
+  bool had_nickname = 3;
+  string flavor_used = 4;
+}
+
+message CountdownRequest {
+  int32 from = 1;
+  int32 interval_ms = 2;
+}
+
+message Tick {
+  int32 value = 1;
+}
+
+message Number {
+  int32 value = 1;
+}
+
+message SumReply {
+  int32 total = 1;
+  int32 count = 2;
+}
+
+message ChatMessage {
+  string from = 1;
+  string text = 2;
+}
