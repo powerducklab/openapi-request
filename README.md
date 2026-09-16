@@ -200,6 +200,14 @@ renderer before any bytes are sent.
 
 ---
 
+## Links
+
+- [Official Website](https://www.powerduck.com/opensource/openapi-request.html)
+- [Documentation](https://www.powerduck.com/docs/openapi-request/introduction/)
+- [Live Demo](https://www.powerduck.com/demo/openapi-request)
+- [GitHub](https://github.com/powerducklab/openapi-request)
+- [npm](https://www.npmjs.com/package/@powerduck/openapi-request)
+
 ## License
 
 MIT © [POWERDUCK LIMITED](https://www.powerduck.com)
