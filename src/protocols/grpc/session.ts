@@ -3,6 +3,7 @@ import * as protoLoader from "@grpc/proto-loader";
 import type { PackageDefinition, ServiceDefinition } from "@grpc/proto-loader";
 
 import { buildCatalog } from "./catalog.js";
+import { buildCredentialsChecked } from "./credentials.js";
 import { scanProtoFiles, deriveIncludeDirsDetailed } from "./proto-dir.js";
 import type {
   GrpcDescriptorSourceKind,
@@ -49,11 +50,15 @@ function createMetadata(input?: Record<string, string>): grpc.Metadata {
 }
 
 function getCredentials(tls: unknown): grpc.ChannelCredentials {
-  if (!tls) {
-    return grpc.credentials.createInsecure();
-  }
-
-  return grpc.credentials.createSsl();
+  // Honor the full TLS config (custom root CAs and mTLS key/cert pair). The
+  // previous implementation called createSsl() with no arguments, so custom
+  // roots and client certificates were silently dropped and every secure
+  // manual session fell back to system roots with no client identity.
+  const { credentials } = buildCredentialsChecked(
+    { tls: tls as boolean | { rootCerts?: Buffer; privateKey?: Buffer; certChain?: Buffer; skipHostnameVerification?: boolean } | undefined },
+    { grpc, protoLoader, capabilities: { descriptorSetFromBuffer: true } },
+  );
+  return credentials;
 }
 
 function getDeadline(deadlineMs?: number): Date | undefined {

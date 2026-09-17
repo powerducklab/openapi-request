@@ -171,6 +171,7 @@ export function createWsManualSession(
       await new Promise<void>((resolve, reject) => {
         const clientOptions: ClientOptions = {
           headers: options.headers,
+          ...(options.clientOptions as object | undefined),
         };
 
         if (options.rejectUnauthorized !== undefined) {

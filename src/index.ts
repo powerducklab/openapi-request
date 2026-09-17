@@ -19,6 +19,13 @@
 export * from "./types";
 export * from "./core/clone";
 export * from "./core/session";
+export {
+  resolveOAuth2Token,
+  acquireOAuth2Token,
+  isOAuth2TokenExpired,
+  oauth2RefreshStatuses,
+  authFromOAuth2Token,
+} from "./core/auth/oauth2";
 
 export { createClient, probeStreamingResponse } from "./core/client";
 export type {

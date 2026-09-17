@@ -78,6 +78,12 @@ export interface AuthConfig {
   key?: string;
   value?: string;
   in?: "header" | "query";
+  /**
+   * OAuth 2.0 automatic token management. When present, the client obtains and
+   * refreshes access tokens itself; a static `parameters.accessToken` is used
+   * as an initial cache. Ignored for every other auth type.
+   */
+  oauth2?: import("./core/auth/oauth2").OAuth2FlowConfig;
 }
 
 /* ------------------------------------------------------------------ *
@@ -625,6 +631,11 @@ export interface CreateWsManualSessionOptions {
   openTimeoutMs?: number;
   /** Ring-buffer cap for events. 0 = unbounded. Default 1000. */
   maxEvents?: number;
+  /**
+   * Extra options passed verbatim to the `ws` client constructor.
+   * Use for TLS customization: ca, cert, key, pfx, passphrase, agent.
+   */
+  clientOptions?: Record<string, unknown>;
 }
 
 export interface WsSendOptions {
@@ -1333,6 +1344,8 @@ export interface SendResult extends ExecResult {
   patchedSpec?: OpenApiDocument;
   /** Explains why write-back did not happen. */
   writeBackSkippedReason?: string;
+  /** OAuth 2.0 token actually used (after acquisition/refresh), when applicable. */
+  oauth2?: import("./core/auth/oauth2").OAuth2Token & { source?: string };
 }
 
 /* ------------------------------------------------------------------ *

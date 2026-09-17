@@ -26,8 +26,16 @@ import type {
   OperationTarget,
   ExecResult,
   ProtocolName,
+  AuthConfig,
 } from "../types";
 import { err, ProtoKitError, toErrorInfo } from "./errors";
+import {
+  resolveOAuth2Token,
+  acquireOAuth2Token,
+  oauth2RefreshStatuses,
+  authFromOAuth2Token,
+  type OAuth2Token,
+} from "./auth/oauth2";
 
 export interface DebuggerOptions {
   adapters?: ProtocolAdapter<any>[];
@@ -156,9 +164,60 @@ export function createDebugger(config: DebuggerOptions = {}) {
   }
 
   async function send(options: SendOptions): Promise<SendResult> {
-    const { located, adapter, plan } = prepare(options);
+    // OAuth 2.0: resolve a usable token (cache / fresh grant / refresh) and
+    // convert it to a static bearer or query token before building anything.
+    const oauthCfg =
+      options.auth?.type === "oauth2" && options.auth.oauth2
+        ? options.auth.oauth2
+        : undefined;
+    let runOptions: SendOptions = options;
+    let oauthOutcome:
+      | { token: OAuth2Token; source: string }
+      | undefined;
 
-    const result = await execute(adapter, plan, options);
+    if (oauthCfg) {
+      const resolved = await resolveOAuth2Token(oauthCfg);
+      oauthOutcome = { token: resolved.token, source: resolved.source };
+      runOptions = {
+        ...options,
+        auth: {
+          ...options.auth,
+          ...authFromOAuth2Token(resolved.token, oauthCfg),
+          oauth2: oauthCfg,
+        } as AuthConfig,
+      };
+    }
+
+    let { located, adapter, plan } = prepare(runOptions);
+
+    let result = await execute(adapter, plan, runOptions);
+
+    // Reactive refresh: on a 401-class status, force a new token once and
+    // resend. Covers servers that reject tokens earlier than their expiry.
+    if (oauthCfg && oauthCfg.autoRefresh !== false) {
+      const statuses = oauth2RefreshStatuses(oauthCfg);
+      const renewableGrant = ["client_credentials", "password", "authorization_code"].includes(
+        oauthCfg.grantType || "client_credentials",
+      );
+      const canRenew = Boolean(oauthCfg.refreshToken) || renewableGrant;
+      if (canRenew && statuses.includes(Number(result.response?.status))) {
+        const fresh = await acquireOAuth2Token(
+          oauthCfg,
+          oauthCfg.refreshToken ? "refresh" : "grant",
+        );
+        oauthOutcome = { token: fresh, source: "retry" };
+        runOptions = {
+          ...options,
+          auth: {
+            ...options.auth,
+            ...authFromOAuth2Token(fresh, oauthCfg),
+            oauth2: oauthCfg,
+          } as AuthConfig,
+        };
+        ({ located, adapter, plan } = prepare(runOptions));
+        result = await execute(adapter, plan, runOptions);
+      }
+    }
 
     const anyPlan = plan as any;
 
@@ -251,6 +310,14 @@ export function createDebugger(config: DebuggerOptions = {}) {
       responseStatusCode: fragment.statusCode,
       patchedSpec,
       writeBackSkippedReason,
+      ...(oauthOutcome
+        ? {
+            oauth2: {
+              ...oauthOutcome.token,
+              source: oauthOutcome.source,
+            },
+          }
+        : {}),
       ...(warnings.length ? { writeBackWarnings: warnings } : {}),
     };
   }
