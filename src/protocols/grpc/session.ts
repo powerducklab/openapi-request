@@ -250,7 +250,7 @@ async function loadServiceFromProto(
     enums: String,
     defaults: true,
     oneofs: true,
-    includeDirs: include.includeDirs,
+    includeDirs: [...new Set([...include.includeDirs, ...(target.includeDirs ?? [])])],
     ...(target.loaderOptions ?? {}),
   });
 
@@ -356,6 +356,7 @@ export function createGrpcManualSession(
   let kind: GrpcMethodKind | undefined;
   let source: GrpcDescriptorSourceKind | undefined;
   let sentCount = 0;
+  let sendingFinished = false;
 
   let loaded: LoadedService | undefined;
   let metadata: grpc.Metadata | undefined;
@@ -646,6 +647,7 @@ export function createGrpcManualSession(
     },
 
     async send(message: unknown) {
+      if (sendingFinished) throw new Error("gRPC sending has already finished");
       if (state !== "open") {
         throw new Error("gRPC session is not open");
       }
@@ -782,6 +784,17 @@ export function createGrpcManualSession(
       }
 
       throw new Error(`Unsupported gRPC method kind: ${service.kind}`);
+    },
+
+    async finishSending() {
+      if (kind !== "client_streaming" && kind !== "bidi_streaming") throw new Error("This gRPC method has no request stream");
+      if (!sendingFinished) {
+        if (state !== "open" || !activeCall) throw new Error("The gRPC stream is not open");
+        sendingFinished = true;
+        // Half-close only the writable side. Keep receiving until server status.
+        activeCall.end();
+      }
+      await closePromise;
     },
 
     async close() {

@@ -69,7 +69,9 @@ export interface RequestValues {
 }
 
 export interface AuthConfig {
-  type: "bearer" | "basic" | "apikey" | "none";
+  type: "bearer" | "basic" | "apikey" | "none" | "digest" | "oauth1" | "oauth2" | "jwt" | "hawk" | "aws4" | "ntlm" | "asap" | "edgegrid";
+  /** Postman auth helper fields for HTTP/SSE/GraphQL. */
+  parameters?: Record<string, string | boolean | number>;
   token?: string;
   username?: string;
   password?: string;
@@ -130,6 +132,8 @@ export interface ScriptOutcome {
   /** Full variable scope snapshot after the script ran (not a diff). */
   environment?: Record<string, string>;
   globals?: Record<string, string>;
+  collection?: Record<string, string>;
+  local?: Record<string, string>;
   /**
    * Values produced by pm.execution.setNextRequest / skipRequest, etc.
    * Widened to `unknown`: the runtime also returns bare strings here.
@@ -368,6 +372,17 @@ export interface RequesterOptions {
   maxInvokableNestedRequests?: number;
   sslKeyLogFile?: string;
   [key: string]: unknown;
+}
+
+/** Saved documentation examples, never auto-sent on connection. */
+export interface WebSocketMessageExample {
+  id: string;
+  name: string;
+  type: "text" | "json" | "binary";
+  /** Binary payloads use Base64. */
+  body: string;
+  /** Captured or authored response example; not a transport correlation guarantee. */
+  response?: string;
 }
 
 /** WebSocket-specific execution options. */
@@ -812,6 +827,8 @@ export interface GrpcManualSession {
   readonly warnings: readonly unknown[];
   open(): Promise<void>;
   send(message: unknown): Promise<void>;
+  /** End the request stream and retain inbound messages until completion. */
+  finishSending(): Promise<void>;
   close(): Promise<void>;
   waitForClose(): Promise<void>;
 }
@@ -1254,6 +1271,7 @@ export interface SendOptions extends StreamParserOptions {
   variables?: Record<string, string>;
   globals?: Record<string, string>;
   localVariables?: Record<string, string>;
+  collectionVariables?: Record<string, string>;
 
   auth?: AuthConfig;
   scripts?: ScriptConfig;

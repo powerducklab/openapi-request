@@ -1,6 +1,6 @@
 {
   "name": "@powerduck/openapi-request",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "OpenAPI 3.2 collection debugger with HTTP, SSE and WebSocket support, plus response write-back",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -37,12 +37,14 @@
       "import": "./dist/protocols/graphql/index.js",
       "require": "./dist/protocols/graphql/index.cjs"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./auth-capabilities.json": "./src/auth-capabilities.json"
   },
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "src/auth-capabilities.json"
   ],
   "engines": {
     "node": ">=18.17.0"

@@ -297,6 +297,8 @@ export function runWithPostman(
       : undefined,
     environment: scopeToObject(entry?.result?.environment),
     globals: scopeToObject(entry?.result?.globals),
+    collection: scopeToObject(entry?.result?.collectionVariables),
+    local: scopeToObject(entry?.result?._variables),
     return: entry?.result?.return,
   });
 
@@ -496,6 +498,17 @@ export function runWithPostman(
     }
 
     run.start({
+      beforeRequest(_error: any, cursor: any, request: any, item: any) {
+        // These auth helpers append literal credentials after normal URL encoding.
+        // Escape only their generated query entries; signed URLs must stay intact.
+        const authType = item?.request?.auth?.type ?? (!cursor?.scriptId ? options.auth?.type : undefined);
+        if (!["apikey", "oauth2"].includes(authType)) return;
+        request.url?.query?.each((parameter: any) => {
+          if (!parameter.system || parameter.disabled) return;
+          parameter.key = encodeURIComponent(String(parameter.key ?? ""));
+          parameter.value = encodeURIComponent(String(parameter.value ?? ""));
+        });
+      },
       console(_cursor: any, level: any, ...logs: unknown[]) {
         const log: ConsoleLog = {
           level: (typeof level === "string"

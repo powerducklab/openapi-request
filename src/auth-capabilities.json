@@ -1,0 +1,225 @@
+[
+  {
+    "type": "none",
+    "label": "No auth",
+    "fields": [],
+    "protocols": [
+      "http",
+      "sse",
+      "graphql",
+      "grpc",
+      "mcp",
+      "websocket"
+    ]
+  },
+  {
+    "type": "bearer",
+    "label": "Bearer token",
+    "fields": [
+      "token"
+    ],
+    "protocols": [
+      "http",
+      "sse",
+      "graphql",
+      "grpc",
+      "mcp",
+      "websocket"
+    ]
+  },
+  {
+    "type": "basic",
+    "label": "Basic auth",
+    "fields": [
+      "username",
+      "password"
+    ],
+    "protocols": [
+      "http",
+      "sse",
+      "graphql",
+      "grpc",
+      "mcp",
+      "websocket"
+    ]
+  },
+  {
+    "type": "apikey",
+    "label": "API key",
+    "fields": [
+      "key",
+      "value",
+      "in"
+    ],
+    "protocols": [
+      "http",
+      "sse",
+      "graphql",
+      "grpc",
+      "mcp",
+      "websocket"
+    ]
+  },
+  {
+    "type": "digest",
+    "label": "Digest auth",
+    "fields": [
+      "username",
+      "password",
+      "realm",
+      "algorithm",
+      "nonce",
+      "nonceCount",
+      "clientNonce",
+      "opaque",
+      "qop"
+    ],
+    "protocols": [
+      "http",
+      "sse"
+    ]
+  },
+  {
+    "type": "oauth1",
+    "label": "OAuth 1.0",
+    "fields": [
+      "consumerKey",
+      "consumerSecret",
+      "token",
+      "tokenSecret",
+      "signatureMethod",
+      "privateKey",
+      "callback",
+      "verifier",
+      "nonce",
+      "timestamp",
+      "version",
+      "realm",
+      "addParamsToHeader",
+      "includeBodyHash"
+    ],
+    "protocols": [
+      "http",
+      "sse"
+    ]
+  },
+  {
+    "type": "oauth2",
+    "label": "OAuth 2.0 token",
+    "fields": [
+      "accessToken",
+      "tokenType",
+      "addTokenTo",
+      "headerPrefix"
+    ],
+    "protocols": [
+      "http",
+      "sse"
+    ]
+  },
+  {
+    "type": "jwt",
+    "label": "JWT Bearer",
+    "fields": [
+      "algorithm",
+      "secret",
+      "privateKey",
+      "payload",
+      "header",
+      "isSecretBase64Encoded",
+      "addTokenTo",
+      "headerPrefix",
+      "queryParamKey"
+    ],
+    "protocols": [
+      "http",
+      "sse"
+    ]
+  },
+  {
+    "type": "hawk",
+    "label": "Hawk",
+    "fields": [
+      "authId",
+      "authKey",
+      "algorithm",
+      "nonce",
+      "timestamp",
+      "extraData",
+      "app",
+      "delegation",
+      "user",
+      "includePayloadHash"
+    ],
+    "protocols": [
+      "http",
+      "sse"
+    ]
+  },
+  {
+    "type": "aws4",
+    "label": "AWS Signature",
+    "fields": [
+      "accessKey",
+      "secretKey",
+      "region",
+      "service",
+      "sessionToken",
+      "addAuthDataToQuery"
+    ],
+    "protocols": [
+      "http",
+      "sse"
+    ]
+  },
+  {
+    "type": "ntlm",
+    "label": "NTLM",
+    "fields": [
+      "username",
+      "password",
+      "domain",
+      "workstation"
+    ],
+    "protocols": [
+      "http",
+      "sse"
+    ]
+  },
+  {
+    "type": "asap",
+    "label": "ASAP",
+    "fields": [
+      "alg",
+      "kid",
+      "iss",
+      "aud",
+      "sub",
+      "exp",
+      "privateKey",
+      "claims"
+    ],
+    "protocols": [
+      "http",
+      "sse"
+    ]
+  },
+  {
+    "type": "edgegrid",
+    "label": "Akamai EdgeGrid",
+    "fields": [
+      "accessToken",
+      "clientToken",
+      "clientSecret",
+      "baseURL",
+      "maxBodySize",
+      "headersToSign",
+      "nonce",
+      "timestamp"
+    ],
+    "protocols": [
+      "http",
+      "sse"
+    ]
+  }
+]

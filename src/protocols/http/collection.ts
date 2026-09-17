@@ -309,8 +309,18 @@ function buildAuth(auth?: AuthConfig): Record<string, any> | undefined {
           },
         ],
       };
-    default:
-      return undefined;
+    default: {
+      const supported = ["digest", "oauth1", "oauth2", "jwt", "hawk", "aws4", "ntlm", "asap", "edgegrid"];
+      if (!supported.includes(auth.type)) throw new Error(`Unsupported HTTP authentication: ${auth.type}`);
+      if (auth.type === "oauth2") {
+        const p = auth.parameters || {};
+        if (!p.accessToken) throw new Error("OAuth 2.0 requires an access token.");
+        if (p.addTokenTo && !["header", "queryParams"].includes(String(p.addTokenTo))) throw new Error("OAuth 2.0 token placement must be header or queryParams.");
+        if (p.tokenType && String(p.tokenType).toLowerCase() !== "bearer") throw new Error("OAuth 2.0 supports Bearer tokens only.");
+      }
+      const runtimeType = auth.type === "aws4" ? "awsv4" : auth.type;
+      return { type: runtimeType, [runtimeType]: Object.entries(auth.parameters || {}).map(([key, value]) => ({key, value, type: typeof value})) };
+    }
   }
 }
 
@@ -610,7 +620,7 @@ export function buildCollection(
         response: [],
       },
     ],
-    variable: [{ key: "baseUrl", value: baseUrl }],
+    variable: [...Object.entries(options.collectionVariables || {}).filter(([key])=>key!=="baseUrl").map(([key,value])=>({key,value})), { key: "baseUrl", value: baseUrl }],
   };
 
   const specDescription = optionalText(spec?.info?.description);

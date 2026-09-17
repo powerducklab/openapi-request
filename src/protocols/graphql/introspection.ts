@@ -30,6 +30,8 @@ fragment FullType on __Type {
     isDeprecated
     deprecationReason
   }
+  interfaces { ...TypeRef }
+  possibleTypes { ...TypeRef }
   inputFields { ...InputValue }
   enumValues(includeDeprecated: true) { name description isDeprecated deprecationReason }
 }

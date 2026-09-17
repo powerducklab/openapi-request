@@ -215,3 +215,14 @@ describe("gRPC session lifecycle", () => {
     expect(session.state).toBe("closed");
   }, 10_000);
 });
+
+it("half-closes a bidi request without dropping the final inbound reply", async () => {
+  const session = makeSession("Chat");
+  await session.open();
+  try {
+    await session.send({from:"client",text:"last-message"});
+    await session.finishSending();
+    expect(session.events.some(e=>e.direction === "in" && JSON.stringify(e.data).includes("last-message"))).toBe(true);
+    await expect(session.send({text:"late"})).rejects.toThrow(/finished/);
+  } finally { await session.close(); }
+}, 15000);
