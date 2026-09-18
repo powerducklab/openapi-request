@@ -817,7 +817,19 @@ export interface GrpcManualSessionTarget {
   service: string;
   method: string;
   metadata?: Record<string, string>;
+  /**
+   * Deadline for a single unary RPC, measured from when the call starts.
+   * Ignored for streaming methods, whose lifetime is bounded by explicit
+   * finish/close rather than a wall-clock deadline.
+   */
   deadlineMs?: number;
+  /**
+   * Optional overall deadline for streaming methods (server/client/bidi).
+   * Leave undefined for interactive streams so they are not terminated by
+   * the unary request timeout; teardown is then driven by finishSending()
+   * or close().
+   */
+  streamDeadlineMs?: number;
   loaderOptions?: Record<string, unknown>;
   channelOptions?: Record<string, unknown>;
   tls?: unknown;

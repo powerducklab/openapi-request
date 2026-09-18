@@ -474,7 +474,12 @@ export function createGrpcManualSession(
     });
 
     call.on("end", () => {
-      if (kind === "server_streaming" || kind === "bidi_streaming") {
+      // A terminal error (e.g. DEADLINE_EXCEEDED) is trailed by an "end" event;
+      // it must not downgrade the session from "error" to a clean "closed".
+      if (
+        (kind === "server_streaming" || kind === "bidi_streaming") &&
+        state !== "error"
+      ) {
         markClosed();
       }
       record({
@@ -612,7 +617,14 @@ export function createGrpcManualSession(
           kind = service.kind;
           source = service.source;
           metadata = createMetadata(target.metadata);
-          deadline = getDeadline(target.deadlineMs);
+          // Unary calls are bounded by the request timeout. Streaming methods
+          // are interactive: they must NOT inherit the unary deadline (which
+          // would fire DEADLINE_EXCEEDED mid-session); they use an optional,
+          // separate stream deadline and otherwise end via finish/close.
+          deadline =
+            kind === "unary"
+              ? getDeadline(target.deadlineMs)
+              : getDeadline(target.streamDeadlineMs);
 
           if (kind === "client_streaming" || kind === "bidi_streaming") {
             createCallForStreamingRequestKinds();

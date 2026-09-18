@@ -226,3 +226,166 @@ it("half-closes a bidi request without dropping the final inbound reply", async 
     await expect(session.send({text:"late"})).rejects.toThrow(/finished/);
   } finally { await session.close(); }
 }, 15000);
+
+describe("gRPC four-mode interaction contract", () => {
+  it("unary: one request yields one response and the call ends by itself", async () => {
+    const session = makeSession("Say");
+    await session.open();
+    await session.send({ text: "once" });
+    expect(session.state).toBe("closed");
+
+    const inbound = session.events.filter(
+      (e) => e.kind === "data" && e.direction === "in",
+    );
+    expect(inbound.length).toBe(1);
+    await expect(session.send({ text: "again" })).rejects.toThrow(/not open/);
+  }, 15_000);
+
+  it("server streaming: accepts exactly one outbound request", async () => {
+    const session = makeSession("Countdown");
+    await session.open();
+    // Long-lived stream so the first send is still in flight.
+    const first = session.send({ from: 100, interval_ms: 40 }).catch(() => {});
+    // The client must not be able to fire a second request.
+    await expect(
+      session.send({ from: 100, interval_ms: 40 }),
+    ).rejects.toThrow(/one send|not open|finished/);
+    await session.close().catch(() => {});
+    await first;
+  }, 15_000);
+
+  it("server streaming: pushes multiple messages and can be cancelled early", async () => {
+    const session = makeSession("Countdown");
+    await session.open();
+    const inFlight = session.send({ from: 100, interval_ms: 20 }).catch(() => {});
+
+    // Wait until at least two ticks have been streamed in.
+    await new Promise<void>((resolve) => {
+      const timer = setInterval(() => {
+        const count = session.events.filter(
+          (e) => e.kind === "data" && e.direction === "in",
+        ).length;
+        if (count >= 2) {
+          clearInterval(timer);
+          resolve();
+        }
+      }, 15);
+    });
+
+    const atCancel = session.events.filter(
+      (e) => e.kind === "data" && e.direction === "in",
+    ).length;
+    await session.close().catch(() => {});
+    await inFlight;
+    expect(["closed", "error"]).toContain(session.state);
+
+    // After cancellation no further ticks may be appended.
+    await new Promise((r) => setTimeout(r, 120));
+    const afterCancel = session.events.filter(
+      (e) => e.kind === "data" && e.direction === "in",
+    ).length;
+    expect(afterCancel).toBe(atCancel);
+  }, 15_000);
+
+  it("client streaming: repeated sends then finishSending() returns one aggregated result", async () => {
+    const session = makeSession("Sum");
+    await session.open();
+    expect(session.kind).toBe("client_streaming");
+
+    await session.send({ value: 5 });
+    await session.send({ value: 15 });
+    await session.send({ value: 25 });
+    await session.finishSending();
+
+    expect(session.state).toBe("closed");
+    const replies = session.events.filter(
+      (e) => e.kind === "data" && e.direction === "in",
+    );
+    expect(replies.length).toBe(1);
+    expect((replies[0].data as any).total).toBe(45);
+    expect((replies[0].data as any).count).toBe(3);
+    await expect(session.send({ value: 1 })).rejects.toThrow(/not open|finished/);
+  }, 15_000);
+
+  it("bidi: interleaves many outbound messages with inbound pushes until finish", async () => {
+    const session = makeSession("Chat");
+    await session.open();
+    try {
+      for (const word of ["a", "b", "c"]) {
+        await session.send({ from: "client", text: word });
+        await new Promise((r) => setTimeout(r, 60));
+      }
+      const echoes = session.events.filter(
+        (e) => e.kind === "data" && e.direction === "in",
+      );
+      // welcome + one echo per outbound message.
+      expect(echoes.length).toBeGreaterThanOrEqual(4);
+      await session.finishSending();
+      expect(session.state).toBe("closed");
+    } finally {
+      await session.close().catch(() => {});
+    }
+  }, 15_000);
+
+  it("streaming methods ignore the unary deadlineMs and stay open", async () => {
+    const session = createGrpcManualSession({
+      address,
+      reflection: true,
+      service: "demo.echo.Echo",
+      method: "Chat",
+      // A unary-sized deadline would otherwise kill the interactive stream.
+      deadlineMs: 200,
+    });
+    await session.open();
+    try {
+      await new Promise((r) => setTimeout(r, 600));
+      expect(session.state).toBe("open");
+      await session.send({ from: "client", text: "still-alive" });
+      await new Promise((r) => setTimeout(r, 150));
+      expect(session.state).toBe("open");
+      expect(
+        session.events.some(
+          (e) =>
+            e.direction === "in" &&
+            JSON.stringify(e.data).includes("still-alive"),
+        ),
+      ).toBe(true);
+    } finally {
+      await session.close().catch(() => {});
+    }
+  }, 15_000);
+
+  it("honors an explicit streamDeadlineMs for a streaming method", async () => {
+    const session = createGrpcManualSession({
+      address,
+      reflection: true,
+      service: "demo.echo.Echo",
+      method: "Chat",
+      streamDeadlineMs: 250,
+    });
+    await session.open();
+    // grpc-js arms the client deadline once the call transmits; send one frame.
+    await session
+      .send({ from: "client", text: "tick" })
+      .catch(() => {});
+    // Poll until the deadline terminates the stream (fail after 4 s).
+    await new Promise<void>((resolve, reject) => {
+      const started = Date.now();
+      const timer = setInterval(() => {
+        if (session.state === "error") {
+          clearInterval(timer);
+          resolve();
+        } else if (Date.now() - started > 4000) {
+          clearInterval(timer);
+          reject(new Error("stream deadline was not enforced"));
+        }
+      }, 20);
+    });
+    expect(session.state).toBe("error");
+    const deadlineStatus = session.events.find(
+      (e) => e.kind === "status" && e.meta?.code === 4,
+    );
+    expect(deadlineStatus?.meta?.statusName).toBe("DEADLINE_EXCEEDED");
+    await session.close().catch(() => {});
+  }, 15_000);
+});
