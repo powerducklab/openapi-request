@@ -876,6 +876,13 @@ export interface GrpcTlsOptions {
    * For self-signed certs issued to a different name. Always produces a warning.
    */
   skipHostnameVerification?: boolean;
+  /**
+   * When `false`, disables peer certificate verification entirely: neither the
+   * chain nor the hostname is checked. This accepts any certificate, including
+   * self-signed certs with no CA configured. It is the gRPC equivalent of Node's
+   * `rejectUnauthorized: false` / "strict SSL off". Always produces a warning.
+   */
+  rejectUnauthorized?: boolean;
 }
 
 export interface GrpcCredentialsOptions {

@@ -9,7 +9,7 @@ export interface CredentialsBuildResult {
    * "tls-system-roots" is also what you get from `tls: { skipHostnameVerification: true }`
    * with no rootCerts, which is a very different configuration than it looks.
    */
-  mode: "insecure" | "tls-system-roots" | "tls-custom-roots" | "mtls";
+  mode: "insecure" | "tls-system-roots" | "tls-custom-roots" | "mtls" | "tls-no-verify";
   warnings: string[];
 }
 
@@ -81,6 +81,23 @@ export function buildCredentialsChecked(
       : root !== null
         ? "tls-custom-roots"
         : "tls-system-roots";
+
+  // rejectUnauthorized: false disables chain AND hostname verification. It is
+  // the most permissive TLS mode, so it must win over skipHostnameVerification.
+  if (tls.rejectUnauthorized === false) {
+    warnings.push(
+      "rejectUnauthorized is false: the server certificate is NOT verified at " +
+        "all. This accepts any certificate, including self-signed ones. " +
+        "Only connect to hosts you trust; do not use this in production.",
+    );
+    return {
+      credentials: grpc.credentials.createSsl(root, key, chain, {
+        rejectUnauthorized: false,
+      }),
+      mode: "tls-no-verify",
+      warnings,
+    };
+  }
 
   if (tls.skipHostnameVerification) {
     warnings.push(
