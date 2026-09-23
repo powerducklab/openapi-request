@@ -120,8 +120,8 @@ const patched = client.writeback(spec, prepared, result);
 | MCP         | streamable-http, stdio| mcp-http-stream, mcp-stdio  |
 
 The protocol is derived from the operation's `x-protocol` extension
-(`"http" | "ws" | "graphql" | "grpc" | "mcp"`). When omitted, it defaults to
-`"http"`.
+(`"http" | "sse" | "websocket" | "graphql" | "grpc" | "mcp"`). When omitted, it defaults to
+`"http"`. The shorthand `"ws"` is accepted and normalized to `"websocket"`.
 
 ---
 
@@ -204,7 +204,7 @@ renderer before any bytes are sent.
 
 - [Official Website](https://www.powerduck.com/opensource/openapi-request.html)
 - [Documentation](https://www.powerduck.com/docs/openapi-request/introduction/)
-- [Live Demo](https://www.powerduck.com/demo/openapi-request)
+- [Live Demo](https://www.powerduck.com/demo/)
 - [GitHub](https://github.com/powerducklab/openapi-request)
 - [npm](https://www.npmjs.com/package/@powerduck/openapi-request)
 
