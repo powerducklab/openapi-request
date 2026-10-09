@@ -1,6 +1,6 @@
 import type { ExecResult, SendOptions, StreamEvent } from "../../core/types";
 import type { ExecuteContext } from "../../core/protocol";
-import { toErrorInfo } from "../../core/errors";
+import { ProtoKitError, toErrorInfo } from "../../core/errors";
 import { SseParser } from "../http/sse-parser";
 import type { ResolvedGraphQLConfig } from "./config";
 
@@ -54,6 +54,7 @@ export async function runGraphQL(
   const timeoutController = new AbortController();
   const onCallerAbort = () => timeoutController.abort();
   signal?.addEventListener("abort", onCallerAbort, { once: true });
+  if (signal?.aborted) onCallerAbort();
   const hardTimer = setTimeout(() => timeoutController.abort(), timeoutMs);
   (hardTimer as any).unref?.();
 
@@ -94,6 +95,17 @@ export async function runGraphQL(
   let text: string | undefined;
   let events: StreamEvent[] | undefined;
   let sizeBytes = 0;
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  let streamTimer: ReturnType<typeof setTimeout> | undefined;
+  const maxBytes = options.maxResponseSize;
+  const readChunk = async () => {
+    const chunk = await reader!.read();
+    sizeBytes += chunk.value?.byteLength ?? 0;
+    if (typeof maxBytes === "number" && Number.isFinite(maxBytes) && sizeBytes > maxBytes) {
+      throw new ProtoKitError(`maxResponseSize (${maxBytes} bytes) exceeded`, "maxResponseSize");
+    }
+    return chunk;
+  };
   let graphqlError: { message: string; code?: string } | undefined;
 
   try {
@@ -108,11 +120,14 @@ export async function runGraphQL(
       });
       events = [];
       const maxEvents = typeof options.maxEvents === "number" && options.maxEvents > 0 ? options.maxEvents : 100;
-      const reader = response.body.getReader();
+      reader = response.body.getReader();
+      if (typeof options.maxStreamMs === "number" && options.maxStreamMs > 0) {
+        streamTimer = setTimeout(() => timeoutController.abort(), options.maxStreamMs);
+        (streamTimer as any).unref?.();
+      }
       for (;;) {
-        const { done, value } = await reader.read();
+        const { done, value } = await readChunk();
         if (done) break;
-        sizeBytes += value?.byteLength ?? 0;
         for (const event of parser.push(value)) {
           events.push(event);
           if (events.length >= maxEvents) break;
@@ -130,8 +145,17 @@ export async function runGraphQL(
         if (events.length < maxEvents) events.push(event);
       }
     } else {
-      const raw = await response.text();
-      sizeBytes = raw.length;
+      const decoder = new TextDecoder();
+      let raw = "";
+      if (response.body) {
+        reader = response.body.getReader();
+        for (;;) {
+          const {done, value} = await readChunk();
+          if (done) break;
+          raw += decoder.decode(value, {stream:true});
+        }
+        raw += decoder.decode();
+      }
       text = raw;
       if (contentType && /json/i.test(contentType) && raw.trim()) {
         try {
@@ -142,8 +166,15 @@ export async function runGraphQL(
       }
     }
   } catch (e) {
-    graphqlError = toErrorInfo(e);
+    graphqlError = signal?.aborted
+      ? {message:"GraphQL request aborted",code:"ABORTED"}
+      : toErrorInfo(e);
   } finally {
+    if (reader) {
+      await reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
+    clearTimeout(streamTimer);
     clearTimeout(hardTimer);
     signal?.removeEventListener("abort", onCallerAbort);
   }
@@ -159,6 +190,9 @@ export async function runGraphQL(
         code: "GRAPHQL_ERRORS",
       };
     }
+  }
+  if (!graphqlError && !isStream && response.ok && !isPlainRecord(body)) {
+    graphqlError = {message:"GraphQL endpoint did not return a JSON response object",code:"GRAPHQL_INVALID_RESPONSE"};
   }
   if (!graphqlError && !response.ok && !isPlainRecord(body)) {
     graphqlError = { message: `GraphQL endpoint responded HTTP ${response.status}`, code: String(response.status) };

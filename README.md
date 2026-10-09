@@ -211,3 +211,7 @@ renderer before any bytes are sent.
 ## License
 
 MIT © [POWERDUCK LIMITED](https://www.powerduck.com)
+
+## 0.2.13 — GraphQL response bounds and cancellation
+
+GraphQL forwards pre-aborted signals, enforces `maxResponseSize` while reading JSON and SSE bodies, and honors `maxStreamMs` for streams. Response sizes count UTF-8 bytes. Body readers are cancelled and released on completion or failure. Successful non-JSON or malformed JSON responses report `GRAPHQL_INVALID_RESPONSE` rather than appearing successful.
