@@ -23,4 +23,4 @@ wss.on("connection", (socket) => {
   });
 });
 
-console.log(`ws server listening on ws://127.0.0.1:${port}`);
+wss.once("listening", () => console.log(`ws server listening on ws://127.0.0.1:${port}`));

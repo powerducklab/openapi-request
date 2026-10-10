@@ -179,7 +179,7 @@ export interface RunInput {
   streamingHint: boolean;
 }
 
-export function runWithPostman(
+export async function runWithPostman(
   input: RunInput,
   options: SendOptions,
   ctx?: ExecuteContext,
@@ -458,6 +458,44 @@ export function runWithPostman(
       e,
     );
   }
+
+  // Runtime otherwise silently disables unreadable file parts after a warning.
+  try {
+    const resolver = runOptions.fileResolver;
+    const checkItems = async (items: any[]) => {
+      for (const item of items ?? []) {
+        if (item.item) await checkItems(item.item);
+        const body = item.request?.body;
+        if (!body || body.disabled) continue;
+        const parts = body.mode === "formdata" ? body.formdata : body.mode === "file" ? [body.file] : [];
+        for (const part of parts ?? []) {
+          if (!part || part.disabled || (body.mode === "formdata" && part.type !== "file")) continue;
+          if (typeof resolver?.stat !== "function" || typeof resolver?.createReadStream !== "function") throw new Error("File resolver must implement stat and createReadStream.");
+          for (const file of Array.isArray(part.src) ? part.src : [part.src]) {
+            if (typeof file !== "string" || !file) throw new Error("Select a file before sending.");
+            const stat: any = await new Promise((resolve, reject) => resolver.stat(file, (error: any, value: any) => error ? reject(error) : resolve(value)));
+            if (!stat.isFile()) throw new Error("Upload source must be a regular file: " + file);
+          }
+        }
+      }
+    };
+    let fileTimer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const ready = await Promise.race([
+        checkItems(input.collectionJson.item).then(() => true),
+        latch.promise.then(() => false),
+        new Promise<never>((_, reject) => {
+          fileTimer = setTimeout(() => reject(new Error("Timed out reading upload files.")), requestTimeout);
+        }),
+      ]);
+      if (!ready || stopReason) return latch.promise;
+    } finally {
+      if (fileTimer) clearTimeout(fileTimer);
+    }
+  } catch (error) {
+    return failFast("FILE_READ_ERROR", toErrorInfo(error).message, error);
+  }
+  if (options.signal?.aborted) return failFast("ABORTED", "Request cancelled before file upload.", options.signal.reason);
 
   let runner: any;
   try {

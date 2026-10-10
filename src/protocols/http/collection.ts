@@ -743,6 +743,13 @@ function buildBody(
 }
 
 function toFieldList(payload: unknown): Array<[string, unknown]> {
+  // Ordered entries preserve repeated field names in multipart and URL encoding.
+  if (Array.isArray(payload)) {
+    if (!payload.every(entry => Array.isArray(entry) && entry.length === 2 && typeof entry[0] === "string")) {
+      throw new TypeError("Form body must contain [name, value] entries.");
+    }
+    return payload as Array<[string, unknown]>;
+  }
   if (!isPlainObject(payload)) return [];
   return Object.entries(payload as Record<string, unknown>);
 }

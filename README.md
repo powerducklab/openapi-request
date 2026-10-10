@@ -223,3 +223,9 @@ branches and caps explicitly increased recursion depth at 128. Small nested
 array schemas can no longer expand exponentially until the host exhausts its
 heap. Exhausted branches yield null, as depth-limited branches already do;
 ordinary bounded samples retain their existing shape.
+
+### Multipart uploads and repeated fields
+
+The Node runtime supplies `fs` as its default file resolver. Multipart file descriptors such as `{ __file: "/absolute/path/file.txt" }` stream the selected file instead of silently omitting it. Missing/non-file upload sources fail before dispatch; file validation honors cancellation and a bounded timeout. A supplied `runner.fileResolver` is used as-is and must implement `stat` and `createReadStream` (plus `readFile` when loading certificates); it never inherits local filesystem access implicitly.
+
+For repeated multipart or URL-encoded fields, pass ordered entries in `values.body`: `[["tag", "one"], ["tag", "two"], ["logo", {"__file":"/absolute/path/logo.png"}]]`. Object bodies remain supported for unique names. File paths are local to the process running the request; a remote MCP/CLI host needs files on that host. HTTP TRACE, QUERY, WebDAV, and custom OpenAPI 3.2 methods are covered by wire-level regression tests.

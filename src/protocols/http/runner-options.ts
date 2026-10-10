@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import sdk from "postman-collection";
 import type {
   RuntimeRunOptions,
@@ -196,6 +197,8 @@ export function buildRunOptions(
 
   /* ---- Full passthrough of caller-provided runtime options ---- */
   const final = deepMerge(defaults, options.runner ?? {});
+  // A custom resolver is a capability boundary, never merge local fs into it.
+  final.fileResolver = options.runner?.fileResolver === undefined ? fs : options.runner.fileResolver;
 
   // deepMerge keeps a nested object, so re-validate the merged result in case
   // the caller only supplied part of the requester block.
