@@ -64,6 +64,12 @@ describe("HTTP maxResponseSize", () => {
         target: { path: "/big", method: "get" },
         runner: { requester: { maxResponseSize: 100 * 1024 } },
       });
+      expect(result.error?.code).toBe('maxResponseSize');
+      expect(result.error?.message).toContain('102400 bytes');
+      const accepted = await client.send({spec,target:{path:'/big',method:'get'},runner:{requester:{maxResponseSize:2*1024*1024}}});
+      expect(accepted.error).toBeUndefined();
+      expect(accepted.response.status).toBe(200);
+      expect(accepted.response.sizeBytes).toBe(1024*1024);
       // The run should complete without throwing. When maxResponseSize is
       // hit the socket is destroyed, so status may be 0; the key assertion
       // is that sizeBytes stays within the cap (plus one in-flight chunk).

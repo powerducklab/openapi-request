@@ -229,3 +229,9 @@ ordinary bounded samples retain their existing shape.
 The Node runtime supplies `fs` as its default file resolver. Multipart file descriptors such as `{ __file: "/absolute/path/file.txt" }` stream the selected file instead of silently omitting it. Missing/non-file upload sources fail before dispatch; file validation honors cancellation and a bounded timeout. A supplied `runner.fileResolver` is used as-is and must implement `stat` and `createReadStream` (plus `readFile` when loading certificates); it never inherits local filesystem access implicitly.
 
 For repeated multipart or URL-encoded fields, pass ordered entries in `values.body`: `[["tag", "one"], ["tag", "two"], ["logo", {"__file":"/absolute/path/logo.png"}]]`. Object bodies remain supported for unique names. File paths are local to the process running the request; a remote MCP/CLI host needs files on that host. HTTP TRACE, QUERY, WebDAV, and custom OpenAPI 3.2 methods are covered by wire-level regression tests.
+
+### GET bodies and response limits
+
+Explicit request bodies are retained for GET and HEAD by setting the generated collection item's `protocolProfileBehavior.disableBodyPruning` to `true`. GET supports JSON, URL-encoded and multipart file bodies; server and intermediary support still determines whether an endpoint accepts them. HEAD retains its normal response semantics (no response body).
+
+`runner.requester.maxResponseSize` is the hard HTTP response limit in bytes. Omit it for no requester-level size limit; positive values are configurable, and zero is rejected. Limit errors carry `code: "maxResponseSize"` and include the configured byte threshold. The separate top-level `maxResponseSize` controls response sampling. Powerduck Desktop applies its own default (2 MiB) and maximum (32 MiB).

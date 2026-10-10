@@ -615,6 +615,9 @@ export function buildCollection(
     item: [
       {
         name: itemName,
+        // Preserve explicit bodies for GET/HEAD as the desktop client does.
+        // Runtime otherwise silently prunes these before sending the request.
+        protocolProfileBehavior: { disableBodyPruning: true },
         ...(itemEvents.length ? { event: itemEvents } : {}),
         request,
         response: [],

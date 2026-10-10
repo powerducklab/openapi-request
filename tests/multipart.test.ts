@@ -36,3 +36,21 @@ it('does not bypass restricted resolvers and allows cancellation during a stalle
  expect((await result).response.stopReason).toBe('aborted');
  await expect(createClient().send({...base,timeout:20,runner:{fileResolver:{stat(){},createReadStream(){}}} as any})).rejects.toThrow('Timed out reading upload files');
 });
+
+it.each(['application/json','application/x-www-form-urlencoded','multipart/form-data'])('preserves GET request bodies and receives response bodies for %s',async contentType=>{
+ const directory=await mkdtemp(join(tmpdir(),'get-body-'));
+ const file=join(directory,'file.txt');await writeFile(file,'get-upload-bytes');
+ const server=http.createServer(async(req,res)=>{const parts=[];for await(const chunk of req)parts.push(chunk);res.setHeader('Content-Type','application/json');res.end(JSON.stringify({method:req.method,body:Buffer.concat(parts).toString()}));});
+ await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
+ try {
+  const spec={openapi:'3.2.0',info:{title:'GET body',version:'1'},servers:[{url:`http://127.0.0.1:${(server.address() as any).port}`}],paths:{'/':{get:{requestBody:{content:{[contentType]:{schema:{type:'object'}}}},responses:{200:{description:'OK'}}}}}};
+  const payload=contentType==='multipart/form-data'?[['files',{__file:file}],['files',{__file:file}]]:{q:'hello'};
+  const result=await createClient().send({spec,target:{path:'/',method:'get'},values:{body:payload}});
+  expect(result.response.status).toBe(200);
+  const echo=result.response.body as any;
+  expect(echo.method).toBe('GET');
+  if(contentType==='multipart/form-data') {expect(echo.body.match(/get-upload-bytes/g)).toHaveLength(2);}
+  else if(contentType==='application/json') expect(JSON.parse(echo.body)).toEqual({q:'hello'});
+  else expect(echo.body).toBe('q=hello');
+ } finally {server.closeAllConnections();await new Promise<void>(r=>server.close(()=>r()));await rm(directory,{recursive:true,force:true});}
+});

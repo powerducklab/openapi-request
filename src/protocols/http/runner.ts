@@ -720,7 +720,9 @@ export async function runWithPostman(
               },
               sizeBytes: receivedBytes,
             },
-            error: toErrorInfo(requestError),
+            error: requestError.message === "Maximum response size reached"
+              ? toErrorInfo(err("maxResponseSize", `Maximum response size reached (${options.runner?.requester?.maxResponseSize} bytes). Increase runner.requester.maxResponseSize to accept a larger response.`))
+              : toErrorInfo(requestError),
             replays,
           };
           return;
