@@ -20,6 +20,11 @@ const SHALLOW_DEPTH = 2;
 const MAX_ARRAY_ITEMS = 5;
 /** Ceiling on padded string length, regardless of minLength. */
 const MAX_STRING_LENGTH = 256;
+// A depth limit alone still permits exponential expansion (e.g. 5^12 items).
+// Share one work budget across every recursive branch of a generated sample.
+const SAMPLE_BUDGET = Symbol("sample-budget");
+type SampleBudget = { remaining: number };
+type InternalSampleOptions = SampleOptions & { [SAMPLE_BUDGET]?: SampleBudget };
 
 export interface SampleOptions {
   /** Maximum recursion depth. Defaults to 12. */
@@ -35,7 +40,11 @@ export function sampleFromSchema(
   depth = 0,
   options: SampleOptions = {},
 ): any {
-  const maxDepth = options.maxDepth ?? MAX_DEPTH;
+  const internal = options as InternalSampleOptions;
+  const budget = internal[SAMPLE_BUDGET] ?? { remaining: 10000 };
+  if (!internal[SAMPLE_BUDGET]) options = { ...options, [SAMPLE_BUDGET]: budget } as InternalSampleOptions;
+  if (--budget.remaining < 0) return null;
+  const maxDepth = Math.min(options.maxDepth ?? MAX_DEPTH, 128);
   if (!schema || typeof schema !== "object" || Array.isArray(schema))
     return null;
   if (depth > maxDepth) return null;

@@ -215,3 +215,11 @@ MIT © [POWERDUCK LIMITED](https://www.powerduck.com)
 ## 0.2.13 — GraphQL response bounds and cancellation
 
 GraphQL forwards pre-aborted signals, enforces `maxResponseSize` while reading JSON and SSE bodies, and honors `maxStreamMs` for streams. Response sizes count UTF-8 bytes. Body readers are cancelled and released on completion or failure. Successful non-JSON or malformed JSON responses report `GRAPHQL_INVALID_RESPONSE` rather than appearing successful.
+
+### 0.2.14 — bounded schema sampling
+
+Example generation now shares a 10,000-node work budget across recursive
+branches and caps explicitly increased recursion depth at 128. Small nested
+array schemas can no longer expand exponentially until the host exhausts its
+heap. Exhausted branches yield null, as depth-limited branches already do;
+ordinary bounded samples retain their existing shape.
