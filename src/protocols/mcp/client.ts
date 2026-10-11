@@ -118,6 +118,7 @@ async function runMcpHttp(
   if (!sessionId) {
     try {
       const session = await initializeSession(config.endpoint!, {
+        fetch: options.fetch,
         headers: config.headers,
         signal,
         clientInfo: config.clientInfo,
@@ -164,6 +165,7 @@ async function runMcpHttp(
   };
   try {
     const outcome = await sendJsonRpc(config.endpoint!, requestBody, {
+      fetch: options.fetch,
       headers,
       signal,
       startedAt,

@@ -58,7 +58,7 @@ export async function initializeSession(
         clientInfo: init.clientInfo ?? { name: "protokit", version: "0.1.0" },
       },
     },
-    { headers: init.headers, signal: init.signal, startedAt },
+    { fetch: init.fetch, headers: init.headers, signal: init.signal, startedAt },
   );
 
   if (isJsonRpcError(outcome.message)) {
@@ -89,6 +89,7 @@ export async function initializeSession(
         ...(init.headers ?? {}),
         ...(sessionId ? { "Mcp-Session-Id": sessionId } : {}),
       },
+      fetch: init.fetch,
       signal: init.signal,
       startedAt,
       protocolVersion: negotiated,
@@ -113,7 +114,7 @@ async function list(
   endpoint: string,
   method: ListMethod,
   session: { sessionId?: string; protocolVersion?: string },
-  init: { headers?: Record<string, string>; signal?: AbortSignal },
+  init: { fetch?: typeof fetch; headers?: Record<string, string>; signal?: AbortSignal },
 ): Promise<any[] | undefined> {
   const startedAt = Date.now();
   const headers = {
@@ -137,7 +138,8 @@ async function list(
       },
       {
         headers,
-        signal: init.signal,
+        fetch: init.fetch,
+      signal: init.signal,
         startedAt,
         protocolVersion: session.protocolVersion,
       },

@@ -235,3 +235,12 @@ For repeated multipart or URL-encoded fields, pass ordered entries in `values.bo
 Explicit request bodies are retained for GET and HEAD by setting the generated collection item's `protocolProfileBehavior.disableBodyPruning` to `true`. GET supports JSON, URL-encoded and multipart file bodies; server and intermediary support still determines whether an endpoint accepts them. HEAD retains its normal response semantics (no response body).
 
 `runner.requester.maxResponseSize` is the hard HTTP response limit in bytes. Omit it for no requester-level size limit; positive values are configurable, and zero is rejected. Limit errors carry `code: "maxResponseSize"` and include the configured byte threshold. The separate top-level `maxResponseSize` controls response sampling. Powerduck Desktop applies its own default (2 MiB) and maximum (32 MiB).
+
+## Host-provided fetch transport
+
+GraphQL requests/introspection and HTTP MCP discovery/sessions accept an optional
+`fetch` implementation. A desktop host can use this to supply its proxy and TLS
+configuration without replacing global `fetch`. The implementation must honor
+`AbortSignal` and return a standard Fetch `Response`; the host owns transport
+cleanup after the request or session finishes. Without this option, the engine
+uses the runtime's global fetch.

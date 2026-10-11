@@ -197,6 +197,7 @@ function resolveTransport(options: McpManualSessionOptions): McpTransport {
     );
   }
   return createHttpMcpTransport({
+    fetch: options.fetch,
     endpoint: validateHttpEndpoint(options.endpoint),
     headers: options.headers,
   });

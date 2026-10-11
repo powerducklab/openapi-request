@@ -75,11 +75,12 @@ fragment TypeRef on __Type {
  */
 export async function introspectSchema(
   endpoint: string,
-  init: { headers?: Record<string, string>; signal?: AbortSignal } = {},
+  init: { fetch?: typeof fetch;
+    headers?: Record<string, string>; signal?: AbortSignal } = {},
 ): Promise<IntrospectionResult> {
   let response: Response;
   try {
-    response = await fetch(endpoint, {
+    response = await (init.fetch ?? fetch)(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

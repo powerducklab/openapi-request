@@ -52,6 +52,7 @@ export async function sendJsonRpc(
   endpoint: string,
   message: JsonRpcRequest,
   init: {
+    fetch?: typeof fetch;
     headers?: Record<string, string>;
     signal?: AbortSignal;
     startedAt: number;
@@ -83,9 +84,10 @@ export async function sendJsonRpc(
     }
   }
 
+  try {
   let response: Response;
   try {
-    response = await fetch(endpoint, {
+    response = await (init.fetch ?? fetch)(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -100,9 +102,6 @@ export async function sendJsonRpc(
     throw err("MCP_TRANSPORT_FAILED", `Could not reach MCP endpoint: ${(e as Error)?.message ?? e}`, undefined, {
       cause: e,
     });
-  } finally {
-    if (timeout) clearTimeout(timeout);
-    detachAbort?.();
   }
 
   const firstByteMs = Date.now() - init.startedAt;
@@ -225,6 +224,10 @@ export async function sendJsonRpc(
     sizeBytes: rawText?.length ?? 0,
     firstByteMs,
   };
+  } finally {
+    if (timeout) clearTimeout(timeout);
+    detachAbort?.();
+  }
 }
 
 export function isJsonRpcError(message: any): message is { error: { code: number; message: string; data?: unknown } } {

@@ -558,6 +558,8 @@ export interface McpDiscoveryResult {
 }
 
 export interface InitializeSessionInit {
+  /** Optional isolated HTTP transport supplied by the host. */
+  fetch?: typeof fetch;
   headers?: Record<string, string>;
   signal?: AbortSignal;
   clientInfo?: { name: string; version: string };
@@ -672,6 +674,8 @@ export interface McpSessionEvent {
  * (Streamable HTTP, the default) or stdio (spawns `command`).
  */
 export interface McpManualSessionOptions {
+  /** Optional isolated HTTP transport supplied by the host. */
+  fetch?: typeof fetch;
   /** "streamable-http" (default) or "stdio". */
   transport?: "streamable-http" | "stdio";
 
@@ -1289,6 +1293,8 @@ export interface ResponseStartInfo {
 }
 
 export interface SendOptions extends StreamParserOptions {
+  /** Optional isolated HTTP transport supplied by the host. */
+  fetch?: typeof fetch;
   /** The complete OpenAPI 3.2 document. */
   spec: OpenApiDocument;
   target: OperationTarget;

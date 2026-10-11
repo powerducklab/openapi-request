@@ -85,6 +85,7 @@ export interface McpTransport {
 
 export function createHttpMcpTransport(options: {
   endpoint: string;
+  fetch?: typeof fetch;
   headers?: Record<string, string>;
 }): McpTransport {
   if (!options || !options.endpoint) {
@@ -98,6 +99,7 @@ export function createHttpMcpTransport(options: {
 
     async open(init) {
       const initOptions: InitializeSessionInit = {
+        fetch: options.fetch,
         headers: baseHeaders,
         signal: init.signal,
         clientInfo: init.clientInfo,
@@ -114,6 +116,7 @@ export function createHttpMcpTransport(options: {
 
     call(body, callInit) {
       return sendJsonRpc(endpoint, body as any, {
+        fetch: options.fetch,
         headers: { ...(callInit.headers ?? baseHeaders) },
         signal: callInit.signal,
         startedAt: callInit.startedAt,
@@ -123,6 +126,7 @@ export function createHttpMcpTransport(options: {
 
     notify(body, callInit) {
       return sendJsonRpc(endpoint, body as any, {
+        fetch: options.fetch,
         headers: { ...(callInit.headers ?? baseHeaders) },
         signal: callInit.signal,
         startedAt: callInit.startedAt,
@@ -131,7 +135,7 @@ export function createHttpMcpTransport(options: {
     },
 
     async terminate(init) {
-      const status = await fetch(endpoint, {
+      const status = await (options.fetch ?? fetch)(endpoint, {
         method: "DELETE",
         headers: {
           ...baseHeaders,

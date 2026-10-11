@@ -68,7 +68,7 @@ export async function runGraphQL(
 
   let response: Response;
   try {
-    response = await fetch(requestUrl, {
+    response = await (options.fetch ?? fetch)(requestUrl, {
       method: config.useGet ? "GET" : "POST",
       headers: config.headers,
       body: requestBody,
