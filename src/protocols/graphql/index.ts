@@ -1,3 +1,5 @@
+import { buildCollectionEvents, buildItemEvents } from "../http/scripts";
+import { ProtoKitError } from "../../core/errors";
 import type {
   ProtocolAdapter,
   AdapterContext,
@@ -38,6 +40,12 @@ export class GraphQLAdapter implements ProtocolAdapter<GraphQLPlan> {
   }
 
   plan(ctx: AdapterContext): GraphQLPlan {
+    const scriptConfig = ctx.options.scripts;
+    if (buildCollectionEvents(ctx.spec, scriptConfig).length ||
+        buildItemEvents(ctx.located.operation, scriptConfig).length ||
+        buildItemEvents(ctx.located.pathItem, scriptConfig).length) {
+      throw new ProtoKitError("GraphQL does not support request scripts", "GRAPHQL_SCRIPTS_UNSUPPORTED");
+    }
     const config = resolveGraphQLConfig(ctx.located, ctx.spec, ctx.options);
     const values = [
       { key: "graphqlEndpoint", value: config.endpoint, type: "default", enabled: true },

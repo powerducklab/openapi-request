@@ -44,7 +44,7 @@ const server=http.createServer((req,res)=>{
    if(p.mac!==hmac('hawk-secret',normalized).toString('base64'))return fail('Invalid Hawk MAC');
   }
   if(url.pathname==='/jwt'||url.pathname==='/asap'){
-   const parts=authorization.replace(/^Bearer /,'').split('.');const unsigned=parts.slice(0,2).join('.');const sig=Buffer.from(parts[2] || '','base64url');
+   const parts=(url.searchParams.get('jwt') || authorization.replace(/^Bearer /,'')).split('.');const unsigned=parts.slice(0,2).join('.');const sig=Buffer.from(parts[2] || '','base64url');
    const valid=url.pathname==='/jwt'?hmac('jwt-secret',unsigned).equals(sig):crypto.verify('RSA-SHA256',Buffer.from(unsigned),pair.publicKey,sig);
    if(!valid)return fail('Invalid JWT signature');
   }
@@ -81,6 +81,11 @@ describe('every advertised HTTP authentication over a real local transport',()=>
   const r=await send('oauth2',{parameters:{accessToken:'a + /',addTokenTo:'queryParams'}});expect(r.response.body).toHaveProperty('query.access_token','a + /');expect(r.response.body).toHaveProperty('authorization','');
  });
  it('JWT verifies HS256 signature',async()=>{await send('jwt',{parameters:{algorithm:'HS256',secret:'jwt-secret',payload:'{"sub":"fixture"}',addTokenTo:'header',headerPrefix:'Bearer'}});});
+ it.each(['queryParam','queryParams'])('JWT query placement %s preserves signature without Authorization',async(addTokenTo)=>{
+  const result=await send('jwt',{parameters:{algorithm:'HS256',secret:'jwt-secret',payload:'{"sub":"fixture"}',addTokenTo,queryParamKey:'jwt'}});
+  expect(result.response.body).toHaveProperty('authorization','');
+  expect((result.response.body as any).query.jwt).toMatch(/^ey/);
+ });
  it('Hawk verifies the request MAC',async()=>{await send('hawk',{parameters:{authId:'id',authKey:'hawk-secret',algorithm:'sha256',nonce:'nonce',timestamp:'1700000000'}});});
  it('AWS Signature verifies the canonical request',async()=>{await send('aws4',{parameters:{accessKey:'access-key',secretKey:'aws-secret',region:'us-east-1',service:'execute-api'}});});
  it('NTLM completes type 1/2/3 exchange with a valid NTLMv2 proof',async()=>{await send('ntlm',{parameters:{username:'user',password:'password',domain:'LAB',workstation:'WORKSTATION'}});expect(requests.filter(r=>r.path==='/ntlm').length).toBeGreaterThan(1);});

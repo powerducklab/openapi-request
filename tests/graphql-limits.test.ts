@@ -40,3 +40,13 @@ it('honors stream deadlines and caller cancellation after response headers',asyn
   if(callerCancels)expect(result.error?.code).toBe('ABORTED');
  }
 });
+
+ it('rejects scripts before sending and honors disabled redirects',async()=>{
+  const fetchMock=vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response('{}',{status:200,headers:{'Content-Type':'application/json'}}));
+  try {
+    await expect(runGraphQL(config,{scripts:{preRequest:{exec:'throw new Error("stop")'}}} as any)).rejects.toThrow(/scripts/);
+    expect(fetchMock).not.toHaveBeenCalled();
+    await runGraphQL(config,{runner:{requester:{followRedirects:false}}} as any);
+    expect(fetchMock).toHaveBeenCalledWith(expect.any(String),expect.objectContaining({redirect:'manual',credentials:'omit'}));
+  } finally { fetchMock.mockRestore(); }
+ });

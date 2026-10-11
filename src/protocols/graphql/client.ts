@@ -37,6 +37,14 @@ export async function runGraphQL(
   options: SendOptions,
   ctx?: ExecuteContext,
 ): Promise<ExecResult> {
+  // This adapter does not run the Postman sandbox. Never silently ignore hooks.
+  for (const key of ["preRequest", "test", "collectionPreRequest", "collectionTest"] as const) {
+    const source = options.scripts?.[key];
+    if (source && (Array.isArray(source) ? source : [source]).some(item =>
+      (Array.isArray(item.exec) ? item.exec.join("\n") : item.exec).trim())) {
+      throw new ProtoKitError("GraphQL does not support request scripts", "GRAPHQL_SCRIPTS_UNSUPPORTED");
+    }
+  }
   const startedAt = Date.now();
   const signal = ctx?.signal ?? options.signal;
 
@@ -65,6 +73,8 @@ export async function runGraphQL(
       headers: config.headers,
       body: requestBody,
       signal: timeoutController.signal,
+      redirect: options.runner?.requester?.followRedirects === false ? "manual" : "follow",
+      credentials: "omit",
     });
   } catch (e) {
     clearTimeout(hardTimer);

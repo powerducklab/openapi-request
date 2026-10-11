@@ -318,8 +318,14 @@ function buildAuth(auth?: AuthConfig): Record<string, any> | undefined {
         if (p.addTokenTo && !["header", "queryParams"].includes(String(p.addTokenTo))) throw new Error("OAuth 2.0 token placement must be header or queryParams.");
         if (p.tokenType && String(p.tokenType).toLowerCase() !== "bearer") throw new Error("OAuth 2.0 supports Bearer tokens only.");
       }
+      const parameters = { ...auth.parameters };
+      // Older desktop documents used OAuth2's plural spelling for JWT.
+      if (auth.type === "jwt" && parameters.addTokenTo === "queryParams") parameters.addTokenTo = "queryParam";
+      if (auth.type === "jwt" && parameters.addTokenTo && !["header", "queryParam"].includes(String(parameters.addTokenTo))) {
+        throw new Error("JWT token placement must be header or queryParam.");
+      }
       const runtimeType = auth.type === "aws4" ? "awsv4" : auth.type;
-      return { type: runtimeType, [runtimeType]: Object.entries(auth.parameters || {}).map(([key, value]) => ({key, value, type: typeof value})) };
+      return { type: runtimeType, [runtimeType]: Object.entries(parameters).map(([key, value]) => ({key, value, type: typeof value})) };
     }
   }
 }

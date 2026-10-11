@@ -281,3 +281,11 @@ describe("GraphQL prepare() classification", () => {
     expect(prepared.display.mode).toBe("event-list");
   });
 });
+
+it('rejects spec-embedded scripts unless the caller explicitly opts out', async () => {
+ const client=createClient();
+ const spec=graphqlSpec(`http://127.0.0.1:${await server.port}/graphql`,'query { hello }');
+ (spec as any)['x-postman-scripts']={preRequest:'throw new Error("stop")'};
+ await expect(client.send({spec,target:{path:'/graphql',method:'post'}})).rejects.toThrow(/scripts/);
+ await expect(client.send({spec,target:{path:'/graphql',method:'post'},scripts:{fromSpecExtensions:false}})).resolves.toBeDefined();
+});
