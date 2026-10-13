@@ -1,6 +1,6 @@
 {
   "name": "@powerduck/openapi-request",
-  "version": "0.2.18",
+  "version": "0.2.20",
   "description": "OpenAPI 3.2 collection debugger with HTTP, SSE and WebSocket support, plus response write-back",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -44,7 +44,8 @@
     "dist",
     "README.md",
     "LICENSE",
-    "src/auth-capabilities.json"
+    "src/auth-capabilities.json",
+    "npm-shrinkwrap.json"
   ],
   "engines": {
     "node": ">=18.17.0"
@@ -82,10 +83,10 @@
   },
   "homepage": "https://www.powerduck.com/",
   "dependencies": {
-    "@grpc/grpc-js": "^1.14.4",
+    "@grpc/grpc-js": "^1.14.6",
     "@grpc/proto-loader": "^0.8.1",
     "@grpc/reflection": "^1.0.4",
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "graphql": "^16.14.2",
     "postman-collection": "^5.3.1",
     "postman-runtime": "^7.56.1",
@@ -100,5 +101,8 @@
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
+  },
+  "overrides": {
+    "handlebars": "4.7.10"
   }
 }
