@@ -1,6 +1,6 @@
 {
   "name": "@powerduck/openapi-request",
-  "version": "0.2.21",
+  "version": "0.2.22",
   "description": "OpenAPI 3.2 collection debugger with HTTP, SSE and WebSocket support, plus response write-back",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -47,7 +47,7 @@
     "src/auth-capabilities.json"
   ],
   "engines": {
-    "node": ">=18.17.0"
+    "node": ">=22.12.0"
   },
   "sideEffects": false,
   "scripts": {
