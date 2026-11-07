@@ -99,3 +99,10 @@ describe('every advertised HTTP authentication over a real local transport',()=>
   const scopes=r.scripts?.prerequest[0] as any;expect(scopes.environment).toMatchObject({freshToken:'script-token'});expect(scopes.environment).not.toHaveProperty('removeEnv');expect(scopes.globals).toEqual({newGlobal:'G'});expect(scopes.collection).toMatchObject({newCollection:'C'});expect(scopes.collection).not.toHaveProperty('removeCollection');expect(scopes.local).not.toHaveProperty('removeLocal');expect(scopes.local).toHaveProperty('newLocal','L');
  });
 });
+
+ it.each(['preRequest','test'])('script runtime exception in %s blocks successful script status',async phase=>{
+  const r=await send('none',{},'none',{scripts:{[phase]:{exec:'throw new Error("ENGINE_SCRIPT_EXCEPTION_139");'}}});
+  expect(r.scripts?.passed).toBe(false);
+  expect(JSON.stringify(r.scripts)).toContain('ENGINE_SCRIPT_EXCEPTION_139');
+  expect(r.patchedSpec).toBeUndefined();
+ });

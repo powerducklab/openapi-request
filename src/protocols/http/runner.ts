@@ -535,8 +535,20 @@ export async function runWithPostman(
       tracker?.destroyAll();
     }
 
+    // Postman reports authorizer failures as warnings and otherwise sends an
+    // unsigned request. Fail closed before the requester opens a connection.
+    let authFailure: string | undefined;
     run.start({
-      beforeRequest(_error: any, cursor: any, request: any, item: any) {
+      beforeRequest(_error: any, cursor: any, request: any, item: any, controls: any) {
+        if (authFailure) {
+          controls?.abort?.();
+          phase = "finalized";
+          hardTimer = safeClearTimeout(hardTimer);
+          detachSignal?.();
+          tracker?.destroyAll();
+          latch.reject(err("AUTH_CONFIGURATION", "Authentication could not be prepared. Check the authentication fields.", authFailure));
+          return;
+        }
         // These auth helpers append literal credentials after normal URL encoding.
         // Escape only their generated query entries; signed URLs must stay intact.
         const authType = item?.request?.auth?.type ?? (!cursor?.scriptId ? options.auth?.type : undefined);
@@ -548,6 +560,10 @@ export async function runWithPostman(
         });
       },
       console(_cursor: any, level: any, ...logs: unknown[]) {
+        if (level === "warn" && typeof logs[0] === "string" &&
+            /^runtime(?:~[\w]+\.auth: could not |: could not find a handler for auth:)/.test(logs[0])) {
+          authFailure = logs[0];
+        }
         const log: ConsoleLog = {
           level: (typeof level === "string"
             ? level
@@ -581,13 +597,19 @@ export async function runWithPostman(
       },
 
       prerequest(_error: any, _cursor: any, results: any[]) {
-        for (const entry of results ?? [])
-          report.prerequest.push(toScriptOutcome(entry, "prerequest"));
+        for (const entry of results ?? []) {
+          const outcome = toScriptOutcome(entry, "prerequest");
+          if (outcome.error) report.passed = false;
+          report.prerequest.push(outcome);
+        }
       },
 
       test(_error: any, _cursor: any, results: any[]) {
-        for (const entry of results ?? [])
-          report.test.push(toScriptOutcome(entry, "test"));
+        for (const entry of results ?? []) {
+          const outcome = toScriptOutcome(entry, "test");
+          if (outcome.error) report.passed = false;
+          report.test.push(outcome);
+        }
       },
 
       item(

@@ -54,3 +54,22 @@ it.each(['application/json','application/x-www-form-urlencoded','multipart/form-
   else expect(echo.body).toBe('q=hello');
  } finally {server.closeAllConnections();await new Promise<void>(r=>server.close(()=>r()));await rm(directory,{recursive:true,force:true});}
 });
+
+it.each([[], {}])('sends a parseable empty multipart envelope for %j', async payload => {
+ const server=http.createServer(async(req,res)=>{
+  try {
+   const chunks=[];for await(const chunk of req)chunks.push(chunk);
+   const raw=Buffer.concat(chunks);
+   const form=await new Request('http://localhost/upload',{method:'POST',headers:{'Content-Type':String(req.headers['content-type'])},body:raw}).formData();
+   res.setHeader('Content-Type','application/json');res.end(JSON.stringify({fields:[...form.keys()],size:raw.length}));
+  } catch(error) {res.statusCode=400;res.end(String(error));}
+ });
+ await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
+ try {
+  const spec={openapi:'3.2.0',info:{title:'empty upload',version:'1'},servers:[{url:`http://127.0.0.1:${(server.address() as any).port}`}],paths:{'/':{post:{requestBody:{content:{'multipart/form-data':{schema:{type:'object'}}}},responses:{200:{description:'OK'}}}}}};
+  const result=await createClient().send({spec,target:{path:'/',method:'post'},values:{body:payload}});
+  expect(result.response.status).toBe(200);
+  expect(result.response.body).toMatchObject({fields:[]});
+  expect((result.response.body as any).size).toBeGreaterThan(0);
+ } finally {server.closeAllConnections();await new Promise<void>(r=>server.close(()=>r()));}
+});

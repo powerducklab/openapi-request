@@ -564,7 +564,17 @@ export function buildCollection(
   if (cookiePairs.length) addHeader("Cookie", cookiePairs.join("; "));
 
   /* ---- Body ---- */
-  const body = buildBody(located.operation, values, contentType, warnings);
+  let body = buildBody(located.operation, values, contentType, warnings);
+  // postman-runtime omits the boundary for a zero-part form. Preserve the
+  // selected media type with a valid empty multipart envelope instead.
+  if (body?.mode === "formdata" && body.formdata.length === 0) {
+    const boundary = uniqueId("powerduck-empty");
+    const contentHeader = header.find(entry => entry.key.toLowerCase() === "content-type");
+    const value = `multipart/form-data; boundary=${boundary}`;
+    if (contentHeader) contentHeader.value = value;
+    else addHeader("Content-Type", value);
+    body = { mode: "raw", raw: `--${boundary}--\r\n` };
+  }
 
   /* ---- URL assembly ---- */
   // `raw` is a display field: the Postman SDK reconstructs the effective URL

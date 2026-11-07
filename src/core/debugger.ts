@@ -262,7 +262,7 @@ export function createDebugger(config: DebuggerOptions = {}) {
       config.writeBack?.requirePassingTests !== false &&
       result.scripts?.passed === false
     ) {
-      writeBackSkippedReason = "one or more assertions failed";
+      writeBackSkippedReason = "one or more scripts or assertions failed";
     } else if (
       result.response.truncated &&
       config.writeBackTruncated === false
